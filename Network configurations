@@ -1,0 +1,266 @@
+R1 LONDON
+en
+conf t
+no ip domain-lookup
+hostname LONDON
+int s0/0 
+Description WAN link to Chatham
+ip add 172.16.0.1 255.255.255.252
+int s0/1 
+Description WAN link to Greenwich
+ip add 172.16.0.10 255.255.255.252
+clock rate 1000000
+int f0/0
+Description to London LAN
+ip add 199.69.156.1 255.255.255.0
+int lo1
+ip add 201.25.112.126 255.255.255.128
+description connection to internet 
+no shutdown
+end
+write
+
+ACL
+ip access-list extended EXTD-2
+deny tcp 199.69.156.0 0.0.1.255 any eq ftp
+permit ip any any 
+exit
+int s0/0
+ip access-group EXTD-2 out
+int s0/1
+ip access-group EXTD-2 out
+
+
+R2 CHATHAM
+en
+conf t
+no ip domain-lookup
+hostname CHATHAM
+int s0/0
+Description WAN link to Greenwich
+ip add 172.16.0.2 255.255.255.252
+int s0/1 
+Description WAN link to London
+ip add 172.16.0.5 255.255.255.252
+clock rate 1000000
+int f0/0
+Description to Chatham LAN
+ip add 199.69.157.1 255.255.255.0
+no shutdown
+end
+write
+
+R3 GREENWICH
+en
+conf t
+no ip domain-lookup
+hostname GREENWICH
+int s0/0
+Description WAN link to Chatham
+ip add 172.16.0.6 255.255.255.252
+clock rate 1000000
+int s0/1 
+Description WAN link to London
+ip add 172.16.0.9 255.255.255.252
+int f0/0
+Description to Greenwich LAN
+ip add 199.69.158.1 255.255.255.0
+no shutdown
+end
+write
+
+PASSWORD
+en
+conf t
+line aux 0
+passsword Elee1121
+login
+line con 0
+password Elee1121
+login
+line vty 0 4
+password Elee1121
+login
+end 
+write
+
+
+OSPF
+LONDON
+en
+conf t
+router ospf 5
+net 172.16.0.0 0.0.0.3 area 0
+net 199.69.156.0 0.0.0.255 area 0
+net 201.25.112.126 0.0.0.127 area 1
+net 172.16.0.8 0.0.0.3 area 1
+end
+write
+
+CHATHAM
+en
+conf t
+router ospf 5
+net 172.16.0.0 0.0.0.3 area 0
+net 199.69.157.0 0.0.0.3 area 0
+net 172.16.0.4 0.0.0.3 area 1
+end
+write
+
+en
+conf t
+router ospf 5
+net 172.16.0.4 0.0.0.3 area 1
+net 199.69.158.0 0.0.0.3 area 1
+net 172.16.0.8 0.0.0.3 area 1
+end
+write
+
+
+
+DHCP CONFIG
+en
+conf t
+ip dhcp pool LONDON
+net 199.69.156.0 255.255.255.0
+default 199.69.156.1
+dns 199.69.157.2 
+exit
+ip dhcp exc 199.69.156.1 199.69.156.15
+end
+write
+
+en
+conf t
+ip dhcp pool CHATHAM
+net 199.69.157.0 255.255.255.0
+default 199.69.157.1
+dns 199.69.157.2
+exit
+ip dhcp exc 199.69.157.1 199.69.156.10
+end
+write
+
+en
+conf t
+ip dhcp pool GREENWICH
+net 199.69.158.0 255.255.255.0
+default 199.69.158.1
+dns 199.69.157.2
+exit
+ip dhcp exc 199.69.158.1 199.69.156.5
+end
+write
+
+MOTD
+en
+conf t
+banner motd # This is a private network so please do not trespass.Authorized acess only. # 
+end
+write
+
+
+
+
+
+SWITCH CONFIG
+
+SW1
+en
+conf t
+no ip domain-lookup
+hostname Switch1
+banner motd # This is a private network so please do not trespass.Authorized acess only. # 
+end
+
+
+SW2
+en
+conf t
+no ip domain-lookup
+hostname Switch2
+banner motd # This is a private network so please do not trespass.Authorized acess only. # 
+end
+
+SW3
+en
+conf t
+no ip domain-lookup
+hostname Switch3
+banner motd # This is a private network so please do not trespass.Authorized acess only. # 
+end
+
+ACCESS LIST
+
+LONDON
+
+ip access-list extended EXTD-2
+deny tcp 199.69.156.0 0.0.1.255 any eq ftp
+permit ip any any 
+exit
+int s0/0
+ip access-group EXTD-2 out
+int s0/1
+ip access-group EXTD-2 out
+
+LONDON
+
+ip access-list extended LONDONROGPC
+deny ip 199.69.156.0 0.0.1.255 host 201.25.112.126
+permit ip any any 
+
+exit
+
+int s0/0
+ip access-group LONDONROGPC out
+int s0/1
+ip access-group LONDONROGPC out
+int f0/0
+ip access-group LONDONROGPC out
+
+
+CHATHAM
+ip access-list extended CHATHAMROGPC
+deny ip 199.69.157.0 0.0.0.255 host 201.25.112.126
+permit ip any any 
+exit
+
+int s0/0
+ip access-group CHATHAMROGPC out
+int s0/1
+ip access-group CHATHAMROGPC out
+int f0/0
+ip access-group CHATHAMROGPC out
+
+
+GREENWICH
+
+
+ip access-list extended GREENWICHROGPC
+deny ip 199.69.158.0 0.0.0.127 host 201.25.112.126
+permit ip any any 
+exit
+
+int s0/0
+ip access-group GREENWICHROGPC out
+int s0/1
+ip access-group GREENWICHROGPC out
+int f0/0
+ip access-group GREENWICHROGPC out
+
+
+
+GREENWICH
+
+ip access-list extended EXTD-1
+deny ip 199.69.158.0 0.0.0.255 host 199.69.157.2
+permit ip any any 
+exit
+int s0/0
+ip access-group EXTD-1 out
+int s0/1
+ip access-group EXTD-1 out
+exit 
+int f0/0
+ip access-group EXTD-1 out
+
